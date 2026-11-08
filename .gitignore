@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+coverage
+*.tsbuildinfo
+public/pdf.worker.min.mjs
+.env
+.env.local
+.vercel
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
