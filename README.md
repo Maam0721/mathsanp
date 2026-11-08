@@ -1,6 +1,6 @@
 # MathSnap
 
-MathSnap is a responsive math-problem library built with Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase, and Anthropic Claude. Organize images by topic, ask for a step-by-step explanation, and follow up with questions in Mongolian by default, with English available.
+MathSnap is a responsive math-problem library built with Next.js 16, React 19, TypeScript, Tailwind CSS, Supabase, and Google Gemini. Organize images by topic, ask for a step-by-step explanation, and follow up with questions in Mongolian by default, with English available.
 
 ## Project structure
 
@@ -14,11 +14,12 @@ mathsnap/
 │   └── copy-pdf-worker.mjs       # Exposes the local PDF.js worker to the browser
 ├── supabase/
 │   └── migrations/
-│       └── 20261107000000_initial_schema.sql
+│       ├── 20261107000000_initial_schema.sql
+│       └── 20261108000000_daily_solve_quota.sql
 └── src/
     ├── app/
     │   ├── api/
-    │   │   ├── chat/route.ts     # Authenticated, rate-limited Claude follow-ups
+    │   │   ├── chat/route.ts     # Authenticated, rate-limited Gemini follow-ups
     │   │   └── solve/route.ts    # Authenticated, rate-limited image solving
     │   ├── globals.css
     │   ├── layout.tsx
@@ -38,7 +39,7 @@ mathsnap/
 
 - Node.js 20.9 or newer and npm
 - A Supabase project
-- An Anthropic API key
+- A Google Gemini API key
 
 ## Setup
 
@@ -53,15 +54,16 @@ mathsnap/
    ```dotenv
    NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
-   ANTHROPIC_API_KEY=your-anthropic-api-key
+   GEMINI_API_KEY=your-gemini-api-key
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 
-   `ANTHROPIC_API_KEY` is only read by server routes. Do not prefix it with `NEXT_PUBLIC_` or expose it in browser code.
+   `GEMINI_API_KEY` and `GEMINI_MODEL` are only read by server routes. Do not prefix them with `NEXT_PUBLIC_` or expose them in browser code.
 
 3. Configure Supabase:
 
-   - In the Supabase SQL Editor, run `supabase/migrations/20261107000000_initial_schema.sql` (or apply it with the Supabase CLI).
-   - The migration creates the topic, problem, and solution tables, enables RLS, and creates the private `problems` bucket and owner-folder storage policies.
+   - In the Supabase SQL Editor, run the SQL files in `supabase/migrations/` in filename order (or apply them with the Supabase CLI).
+   - The migrations create the app tables, enable RLS, create the private `problems` bucket, and enforce daily solve quotas of 50 per user and 100 globally.
    - Enable Email provider under **Authentication → Providers**. Configure email confirmation and your site/redirect URLs under **Authentication → URL Configuration** as appropriate.
    - Copy the project URL and anon/public key from **Project Settings → API**.
 
@@ -86,8 +88,8 @@ mathsnap/
 - Create, rename, and delete topics; search, filter, and sort problems; move or delete a problem.
 - Drag-and-drop or file-picker uploads for PNG/JPG/PDF, including multiple files. PDF pages are rendered in the browser into PNG images.
 - File type and 10 MB size checks in the UI, the storage bucket, and the solve/chat API routes.
-- Claude vision solving through authenticated server-only API routes; solutions are persisted and reused until you choose to solve again.
-- Follow-up questions send the original image, saved solution, and question to Claude. Follow-up messages are held in the current dialog and are not persisted.
+- Gemini vision solving through authenticated server-only API routes; solutions are persisted and reused until you choose to solve again.
+- Follow-up questions send the original image, saved solution, and question to Gemini. Follow-up messages are held in the current dialog and are not persisted.
 - KaTeX math rendering, dark mode, Mongolian-by-default interface, and English language option.
 
 ## Rate limits and production notes
@@ -100,7 +102,7 @@ The `predev` and `prebuild` scripts copy PDF.js's worker to `public/`; this gene
 ## Deploy to Vercel
 
 1. Push the project to a Git provider and import it in Vercel.
-2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `ANTHROPIC_API_KEY` to the Vercel project environment variables for the required environments.
+2. Add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `GEMINI_API_KEY`, and `GEMINI_MODEL` to the Vercel project environment variables for the required environments.
 3. Apply the Supabase migration and set the production site URL and auth redirect URLs in Supabase.
 4. Deploy. Vercel detects the Next.js app and uses `npm run build`.
 5. For multiple concurrent production instances, switch the in-memory rate limiter to a shared backing store.

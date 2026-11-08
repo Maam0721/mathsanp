@@ -254,6 +254,7 @@ function Dashboard({
   const [solving, setSolving] = useState(false);
   const [chatBusy, setChatBusy] = useState(false);
   const [question, setQuestion] = useState("");
+  const [solveHint, setSolveHint] = useState("");
   const [chat, setChat] = useState<{ question: string; answer: string }[]>([]);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const [topicMenu, setTopicMenu] = useState<string | null>(null);
@@ -500,6 +501,7 @@ function Dashboard({
     setSavedSolution(null);
     setChat([]);
     setQuestion("");
+    setSolveHint("");
     const [imageResult, solutionResult] = await Promise.all([
       supabase.storage.from("problems").createSignedUrl(problem.image_path, 60 * 60),
       supabase.from("solutions").select("content, model, created_at").eq("problem_id", problem.id).maybeSingle(),
@@ -525,7 +527,7 @@ function Dashboard({
       const response = await fetch("/api/solve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ problemId: selectedProblem.id, force }),
+        body: JSON.stringify({ problemId: selectedProblem.id, force, hint: solveHint.trim() }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? t.solveFailed);
@@ -754,11 +756,12 @@ function Dashboard({
             </div>
             <div className="detail-solution-column">
               <div className="detail-topic"><span className="topic-dot topic-dot-0" />{topics.find((topic) => topic.id === selectedProblem.topic_id)?.name}</div>
-              {!savedSolution ? <div className="solve-intro"><div className="solve-sparkle"><Sparkles size={20} /></div><h2>{t.solveTitle}</h2><p>{t.chooseProblem}</p><button className="primary-button solve-button" disabled={solving || !signedImage} onClick={() => void solveProblem()}>{solving ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}{solving ? t.solving : t.solve}</button><span className="ai-note"><span className="ai-dot" />{t.solveNote}</span></div> : <>
+              {!savedSolution ? <div className="solve-intro"><div className="solve-sparkle"><Sparkles size={20} /></div><h2>{t.solveTitle}</h2><p>{t.chooseProblem}</p><button className="primary-button solve-button" disabled={solving || !signedImage} onClick={() => void solveProblem()}>{solving ? <LoaderCircle className="spin" size={17} /> : <Sparkles size={17} />}{solving ? t.solving : t.solve}</button><label className="solve-hint-field">Нэмэлт заавар (заавал биш)<textarea maxLength={300} value={solveHint} onChange={(event) => setSolveHint(event.target.value)} placeholder="Жишээ: хэсэгчилсэн бутархайгаар бод" rows={2} /></label><span className="ai-note"><span className="ai-dot" />{t.solveNote}</span></div> : <>
                 <div className="solution-title-row"><div><div className="eyebrow"><Sparkles size={13} /> {t.solvedBadge.toUpperCase()}</div><h2>{t.solution}</h2></div><button className="text-button" disabled={solving} onClick={() => void solveProblem(true)}>{solving ? <LoaderCircle className="spin" size={15} /> : <ArrowLeft className="redo-icon" size={14} />}{t.reSolve}</button></div>
                 <div className="solution-body"><MarkdownMath>{savedSolution.content}</MarkdownMath></div>
+                <p className="ai-disclaimer">AI-ийн бодолтыг заавал шалгаарай.</p>
                 <div className="followup-section"><div className="followup-heading"><div className="followup-icon"><CircleHelp size={16} /></div><div><strong>{t.ask}</strong><span>{t.askHint}</span></div></div>
-                  {chat.map((item, index) => <div className="chat-pair" key={`${index}-${item.question}`}><div className="chat-question">{item.question}</div><div className="chat-answer"><MarkdownMath>{item.answer}</MarkdownMath></div></div>)}
+                  {chat.map((item, index) => <div className="chat-pair" key={`${index}-${item.question}`}><div className="chat-question">{item.question}</div><div className="chat-answer"><MarkdownMath>{item.answer}</MarkdownMath><p className="ai-disclaimer">AI-ийн бодолтыг заавал шалгаарай.</p></div></div>)}
                   <form className="followup-input" onSubmit={(event) => void askFollowUp(event)}><input maxLength={1000} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={t.askPlaceholder} /><button disabled={chatBusy || !question.trim()} aria-label={t.send}>{chatBusy ? <LoaderCircle className="spin" size={17} /> : <Send size={16} />}</button></form>
                 </div>
               </>}
